@@ -102,3 +102,38 @@ Milkdown/ProseMirror, source mode CodeMirror 6) and a Rust backend in
   don't work around it.
 - Don't change signing, notarization, release or store workflows unless the
   task is about them.
+
+## Fork releases (luckylew23/Textus)
+
+This fork releases from `.github/workflows/release-fork.yml`, modeled on
+the Tydora fork's pipeline: pushing a `v*.*.*` tag builds and publishes
+directly, or
+`gh workflow run -R luckylew23/Textus release-fork.yml
+-f tag=<tag> --ref proxy-authentication`. One build job per platform
+feeds one publish job, so no two builds race for the release. What the
+first fork release (v1.4.1-rc.3, 2026-11-13) established; drop this
+section when syncing from upstream:
+
+- **Version**: follow upstream's version and raise only the rc suffix
+  (`1.4.1-rc.N`). Every file `scripts/check-versions.mjs` lists moves
+  together (package.json, package-lock.json, src-tauri/tauri.conf.json,
+  src-tauri/Cargo.toml, Cargo.lock); the publish job re-checks the tag.
+  The tag must exist on the remote before dispatching.
+- **Updater signing**: the fork has its own `TAURI_SIGNING_PRIVATE_KEY`
+  (created 2026-11-13, empty password) in the Actions secrets; fork
+  releases never publish latest.json, so the key is not the upstream one.
+- **macOS unsigned**: no Apple Developer account, so release-fork.yml
+  sets none of the APPLE secrets and tauri build ships unsigned DMGs
+  (Gatekeeper: right-click - Open on first launch).
+- **Platforms**: only macOS Apple-silicon DMG and Windows x64 (NSIS +
+  portable zip). The windows job adds a portable zip
+  (`Textus_<version>_x64_portable.zip`, built with 7z so `Textus/` is
+  the zip's root folder).
+- **Upstream's release.yml is disabled on this fork** (Actions settings)
+  and carries no fork edits - re-enable it and delete release-fork.yml
+  when returning to the upstream flow. Only this AGENTS.md section and
+  release-fork.yml are fork files, so upstream sync never conflicts.
+- **Network**: pushes and Actions checks fail when GitHub is unreachable
+  from the intranet. A failed or cancelled run is no loss: dispatch the
+  same tag again after the network is back.
+>>>>>>> 7a150f7a (Release the fork from its own workflow, modeled on Tydora's)
