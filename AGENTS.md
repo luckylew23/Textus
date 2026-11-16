@@ -148,3 +148,87 @@ section when syncing from upstream:
 - **Network**: pushes and Actions checks fail when GitHub is unreachable
   from the intranet. A failed or cancelled run is no loss: dispatch the
   same tag again after the network is back.
+
+## Fork work log (luckylew23/Textus, 2026-11-13)
+
+State and lessons from the first fork work session, so a later agent can
+continue without rediscovering them. Branch `proxy-authentication` (HEAD
+`58fc240d`); first fork release `v1.4.1-rc.3` published (see Fork releases
+above). Local checkout: `~/Work/Textus`.
+
+### What the fork adds so far
+
+- **Proxy credentials** (`9168fe5b`): the proxy setting takes a username
+  and password (Basic auth; the backend encodes them into the proxy URL's
+  userinfo, which reqwest turns into `Proxy-Authorization`). They are
+  DEVICE_SETTINGS and never exported. Fixes 407 "Proxy Authorization
+  Required" from proxies that accept Basic.
+- **Local model APIs always connect directly** (`8968061b`): with no
+  proxy configured, provider clients are built with `.no_proxy()` (a
+  terminal's HTTPS_PROXY can no longer hijack a model on this computer),
+  and the loopback exemption covers the whole family
+  (`aicompat::http::LOOPBACK_NO_PROXY` = `localhost,127.0.0.0/8,::1`,
+  shared with `net.rs`). Ported from the Tydora project's plus.7 fix;
+  the full write-up lives at
+  `~/Work/Tydora/docs/ai-local-api-proxy-issue.md`.
+- **Fork release pipeline** (`6ce7e11a`): `release-fork.yml`, see
+  Fork releases above. Upstream's `release.yml` is reverted to its
+  original content and disabled on the fork.
+
+### On GitHub (state as of 2026-11-13)
+
+- **Fork**: `luckylew23/Textus` (parent/upstream:
+  `CatVinci-Studio/Textus`). `main` still mirrors upstream untouched; all
+  fork work lives on `proxy-authentication` (HEAD `58fc240d`).
+- **Tag** `v1.4.1-rc.3` points at `6ce7e11a` (it was force-moved there so
+  the tag carries release-fork.yml; re-pointing a tag like this is normal
+  here - no published release depends on the old commit).
+- **Release** `v1.4.1-rc.3` is published as a prerelease with six assets:
+  `Textus_1.4.1-rc.3_aarch64.dmg` (unsigned), `..._x64-setup.exe`,
+  `..._x64_portable.zip` (a `Textus/` folder at the zip's root), plus the
+  updater artifacts (`Textus.app.tar.gz(.sig)`, `..._x64-setup.exe.sig`).
+- **Actions**: upstream `release.yml` is DISABLED on the fork;
+  `release-fork.yml` is the only release workflow (tag push or dispatch).
+  Secrets: `TAURI_SIGNING_PRIVATE_KEY` (fork's own key, 2026-11-13, empty
+  password) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty) are set;
+  there are no APPLE_* secrets and none are needed.
+- **Updater chain**: fork releases never publish latest.json, and the
+  fork-built app's updater endpoint stays upstream's - publishing on the
+  fork cannot affect upstream users, and fork builds won't be offered
+  upstream updates until upstream ships a stable release.
+
+### This machine's environment
+
+- **cargo**: direct crates.io hangs. Use a throwaway CARGO_HOME with the
+  rsproxy mirror:
+  `mkdir -p /tmp/textus-cargo-home && printf '[source.crates-io]\nreplace-with = "rsproxy-sparse"\n\n[source.rsproxy-sparse]\nregistry = "sparse+https://rsproxy.cn/index/"\n' > /tmp/textus-cargo-home/config.toml`
+  then `CARGO_HOME=/tmp/textus-cargo-home cargo ...` (deps for this repo
+  are already cached there).
+- **npm**: the default npm cache has root-owned files (EPERM errors).
+  Install with `npm install --cache /tmp/npm-cache-textus`.
+- **Pre-existing test failures**: on a clean `main`, 28 vitest tests fail
+  with `localStorage` being undefined (6 files, e.g.
+  `src/ai/chat/conversation/conversation-model.test.ts`) even though jsdom
+  is installed - a machine-side issue, not the repo's. Before blaming your
+  change, run the failing file on a clean tree.
+- **macOS loopback binding**: only `127.0.0.1` can be bound (no
+  `127.0.0.2+` aliases), so loopback-family tests fall back to
+  `127.0.0.1` locally; Linux CI binds the whole /8 and covers the rest.
+
+### Lessons
+
+- **An https push that touches `.github/workflows/` is rejected** ("OAuth
+  App ... without `workflow` scope") - the gh token lacks that scope, and
+  the rejection sometimes surfaces as a connect timeout, which reads like
+  a network outage for an hour. Pushing over SSH works: origin is
+  `git@github.com:luckylew23/Textus.git`.
+- **A workflow_dispatch needs the workflow file on the default branch.**
+  From a branch, move the tag onto a commit that carries the workflow and
+  push it (`git tag -f v... <commit> && git push -f origin v...`); the
+  tag push event runs the workflow from the commit the tag points at.
+- **Check what actually failed before assuming the network**: `git
+  ls-remote` and `gh api` succeeding while `git push` fails means the
+  token scope, not the intranet.
+- **TDD against a shared-global Rust module**: tests that mutate a
+  process-global (e.g. the proxy URL static) must live in ONE test
+  function - parallel tests otherwise leak state into each other.
