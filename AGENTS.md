@@ -138,13 +138,13 @@ section when syncing from upstream:
   `workflow` scope, so an https push that adds or changes anything under
   `.github/workflows/` is rejected ("refusing to allow an OAuth App...")
   - long after the real error surfaced as connect timeouts. The origin
-  points at `git@github.com:...` (SSH, port 22 works here) and pushes
-  workflow commits fine.
+    points at `git@github.com:...` (SSH, port 22 works here) and pushes
+    workflow commits fine.
 - **A workflow_dispatch needs the workflow on the default branch**;
   release-fork.yml is only on `proxy-authentication`. Releasing from the
   branch therefore means: move the tag onto a commit that carries
   release-fork.yml and push it (`git tag -f v... <commit> && git push -f
-  origin v...`) - the tag push event runs the workflow from the commit
+origin v...`) - the tag push event runs the workflow from the commit
   the tag points at.
 - **Network**: pushes and Actions checks fail when GitHub is unreachable
   from the intranet. A failed or cancelled run is no loss: dispatch the
@@ -175,6 +175,25 @@ above). Local checkout: `~/Work/Textus`.
 - **Fork release pipeline** (`6ce7e11a`): `release-fork.yml`, see
   Fork releases above. Upstream's `release.yml` is reverted to its
   original content and disabled on the fork.
+- **Intranet network access** (2026-11-16): the app's requests reach the
+  internet from an intranet where only a proxy can (catalog, plugin and
+  theme downloads, web search, updates), like other apps on the computer:
+  - `reqwest` gains the `socks` and `system-proxy` features (Cargo.toml).
+    Without `socks` a SOCKS5 setting was accepted but every request failed
+    before it left the computer.
+  - Selecting SOCKS5 now builds a `socks5h://` proxy URL, so names are
+    looked up at the proxy; this computer's DNS cannot resolve them.
+  - With no proxy set in Textus's settings, `net::internet_client` follows
+    the system's (or the environment's) proxy, while `net::public_client`
+    stays direct - it also serves this computer's own servers (PicGo, an
+    MCP server on a port here), which a proxy must not carry.
+  - A `proxyUsername`/`proxyPassword` change re-applies the proxy
+    (`proxy_keys_changed`); before, only type/host/port did, so credentials
+    typed after the address never reached requests (the 407 case again).
+  - A proxy setting that can't be read is logged, not silently dropped.
+  - `reqwest13` is a direct, unused dependency purely for feature
+    unification: tauri-plugin-updater's own reqwest 0.13 client needs
+    `socks` for a SOCKS5 proxy during update checks and installs.
 
 ### On GitHub (state as of 2026-11-13)
 
@@ -228,7 +247,7 @@ above). Local checkout: `~/Work/Textus`.
   push it (`git tag -f v... <commit> && git push -f origin v...`); the
   tag push event runs the workflow from the commit the tag points at.
 - **Check what actually failed before assuming the network**: `git
-  ls-remote` and `gh api` succeeding while `git push` fails means the
+ls-remote` and `gh api` succeeding while `git push` fails means the
   token scope, not the intranet.
 - **TDD against a shared-global Rust module**: tests that mutate a
   process-global (e.g. the proxy URL static) must live in ONE test
