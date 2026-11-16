@@ -14,21 +14,36 @@ pub fn client(connect: Duration, total: Duration) -> reqwest::ClientBuilder {
 }
 
 /// [`client`] for servers elsewhere: through the app's network proxy when
-/// one is set, like the AI providers' requests; this computer's own servers
-/// (PicGo, a plugin's local app) directly. An app started from the desktop
-/// doesn't inherit HTTPS_PROXY, so where only a proxy reaches GitHub, going
-/// direct fails (the plugin and theme catalogs, #512, #580).
-pub fn public_client(connect: Duration, total: Duration) -> Result<reqwest::ClientBuilder, String> {
-    through(client(connect, total), aicompat::http::proxy_url())
+/// one is set, like the AI providers' requests; with none set, through this
+/// computer's own proxy (the system's, or the environment's), as every other
+/// app on the computer reaches the internet. For the plugin and theme
+/// catalogs, downloads and the like (#512, #580): an app started from the
+/// desktop inherits no HTTPS_PROXY, and on an intranet where only a proxy
+/// reaches the internet, going direct fails with a name error.
+pub fn internet_client(
+    connect: Duration,
+    total: Duration,
+) -> Result<reqwest::ClientBuilder, String> {
+    through(client(connect, total), aicompat::http::proxy_url(), true)
 }
 
-/// `builder` through `proxy`, if there is one. Without one the builder is
-/// pinned to direct: a proxy in the terminal's environment must not hijack
-/// a request to this computer either (aicompat::http::LOOPBACK_NO_PROXY
+/// [`client`] for servers elsewhere through the app's proxy when one is set,
+/// without one directly. For requests that may name this computer's own
+/// servers (PicGo, a plugin's local app, an MCP server on a port here): a
+/// proxy in the system's or the environment's settings must not carry those.
+pub fn public_client(connect: Duration, total: Duration) -> Result<reqwest::ClientBuilder, String> {
+    through(client(connect, total), aicompat::http::proxy_url(), false)
+}
+
+/// `builder` through `proxy`, if there is one. With none: through the
+/// system's own proxy when `system` (for servers elsewhere), and otherwise
+/// pinned to direct, so a proxy in the terminal's or the system's settings
+/// must not hijack a request to this computer (aicompat::http::LOOPBACK_NO_PROXY
 /// keeps the loopback family out of a proxy that is set).
 fn through(
     builder: reqwest::ClientBuilder,
     proxy: Option<String>,
+    system: bool,
 ) -> Result<reqwest::ClientBuilder, String> {
     Ok(match proxy {
         Some(proxy) => builder.proxy(
@@ -38,6 +53,7 @@ fn through(
                     aicompat::http::LOOPBACK_NO_PROXY,
                 )),
         ),
+        None if system => builder,
         None => builder.no_proxy(),
     })
 }
@@ -138,6 +154,7 @@ mod tests {
         let client = through(
             client(Duration::from_secs(5), Duration::from_secs(5)),
             Some(proxy),
+            false,
         )
         .unwrap()
         .build()
@@ -185,6 +202,7 @@ mod tests {
         let unauthorized = through(
             client(Duration::from_secs(5), Duration::from_secs(5)),
             Some(proxy.clone()),
+            false,
         )
         .unwrap()
         .build()
@@ -201,7 +219,10 @@ mod tests {
         let with_credentials = proxy.trim_start_matches("http://").to_string();
         let authorized = through(
             client(Duration::from_secs(5), Duration::from_secs(5)),
-            Some(format!("http://alice:{{SECRET_4bymoh54}}@{with_credentials}")),
+            Some(format!(
+                "http://alice:{{SECRET_4bymoh54}}@{with_credentials}"
+            )),
+            false,
         )
         .unwrap()
         .build()
@@ -224,6 +245,7 @@ mod tests {
         let client = through(
             client(Duration::from_secs(5), Duration::from_millis(500)),
             Some(proxy),
+            false,
         )
         .unwrap()
         .build()
@@ -233,10 +255,49 @@ mod tests {
         drop(dead);
     }
 
+    #[tokio::test]
+    async fn a_socks_proxy_is_reached_and_speaks_socks() {
+        // The `socks` feature must be compiled in: without it a socks5h
+        // proxy address is accepted by the setting but every request fails
+        // before it is reached. A SOCKS5 greeting starts with its version,
+        // 5 - the byte the proxy below waits for.
+        use std::io::Read;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let proxy = format!("socks5h://{}", listener.local_addr().unwrap());
+        let seen = std::sync::Arc::new(std::sync::Mutex::new(None));
+        let record = seen.clone();
+        std::thread::spawn(move || {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut version = [0u8; 1];
+                if stream.read(&mut version).is_ok() {
+                    *record.lock().unwrap() = Some(version[0]);
+                }
+            }
+        });
+        let client = through(
+            client(Duration::from_secs(5), Duration::from_secs(5)),
+            Some(proxy),
+            false,
+        )
+        .unwrap()
+        .build()
+        .unwrap();
+        // The greeting arrives first; the request itself fails against this
+        // proxy that never answers, which is fine here.
+        let _ = client.get("http://example.invalid/").send().await;
+        for _ in 0..100 {
+            if seen.lock().unwrap().is_some() {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+        assert_eq!(*seen.lock().unwrap(), Some(5));
+    }
+
     #[test]
     fn an_unreadable_proxy_is_an_error() {
         let builder = client(Duration::from_secs(5), Duration::from_secs(5));
-        assert!(through(builder, Some("not a url".into())).is_err());
+        assert!(through(builder, Some("not a url".into()), false).is_err());
     }
 
     #[tokio::test]
@@ -263,13 +324,13 @@ mod tests {
                 }
                 request.extend_from_slice(&buf[..n]);
             }
-            let _ = stream.write_all(
-                b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok",
-            );
+            let _ = stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nok");
         });
         let client = through(
             client(Duration::from_secs(5), Duration::from_secs(5)),
             Some(proxy),
+            false,
         )
         .unwrap()
         .build()

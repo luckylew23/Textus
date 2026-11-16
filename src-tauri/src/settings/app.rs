@@ -16,6 +16,22 @@ pub fn init(app: &AppHandle) {
     apply_app_theme(app);
 }
 
+/// The settings fields the proxy is made from: each is patched on its own as
+/// the user types, and a name or password must reach a proxy that asks for
+/// them as surely as the address does.
+const PROXY_KEYS: [&str; 5] = [
+    "proxyType",
+    "proxyHost",
+    "proxyPort",
+    "proxyUsername",
+    "proxyPassword",
+];
+
+/// Whether `patch` changes any field the proxy is made from.
+pub(crate) fn proxy_keys_changed(patch: &Map<String, Value>) -> bool {
+    PROXY_KEYS.iter().any(|key| patch.contains_key(*key))
+}
+
 /// The settings' proxy, for every request the app makes: read here, at
 /// launch and on each change, so a request made before any window (a
 /// scheduled job in background mode) goes through it too. An unreadable one
@@ -29,7 +45,13 @@ pub(crate) fn proxy_changed(settings: &Value) {
             .trim()
             .to_string()
     };
-    let (kind, host, port) = (text("proxyType"), text("proxyHost"), text("proxyPort"));
+    let (mut kind, host, port) = (text("proxyType"), text("proxyHost"), text("proxyPort"));
+    // The names a SOCKS5 proxy is asked for are looked up at the proxy
+    // (socks5h): on an intranet this computer's own DNS can't resolve an
+    // address elsewhere, which fails before the proxy is ever reached.
+    if kind == "socks5" {
+        kind = "socks5h".to_string();
+    }
     let (user, pass) = (text("proxyUsername"), text("proxyPassword"));
     let proxy = (!host.is_empty() && !kind.is_empty() && kind != "none").then(|| {
         let mut url = format!("{kind}://{host}");
@@ -44,13 +66,17 @@ pub(crate) fn proxy_changed(settings: &Value) {
         if !user.is_empty() {
             if let Ok(mut parsed) = reqwest::Url::parse(&url) {
                 let _ = parsed.set_username(&user);
-                let _ = parsed.set_password((!pass.is_empty()).then(|| pass.as_str()));
+                let _ = parsed.set_password((!pass.is_empty()).then_some(pass.as_str()));
                 url = parsed.to_string();
             }
         }
         url
     });
-    if aicompat::http::set_proxy(proxy).is_err() {
+    if let Err(why) = aicompat::http::set_proxy(proxy) {
+        // A proxy that can't be read (a typo, or a kind the HTTP client
+        // doesn't support) must not pass for one that is in use: say so,
+        // then go direct.
+        eprintln!("textus: proxy setting left out, requests go direct: {why}");
         let _ = aicompat::http::set_proxy(None);
     }
 }
