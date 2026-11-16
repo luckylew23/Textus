@@ -62,13 +62,21 @@ jobs:
 
       # The portable zip: the app alone, in a Textus folder, so extracting
       # lands in its own directory. Upstream ships the NSIS installer only.
+      # 7z stores the path it is given, so run it from release-assets: from
+      # the repo root every entry came out as release-assets/Textus/... and
+      # extracting buried the app a folder deeper than intended.
       - name: Package the Windows portable zip
         if: matrix.platform == 'windows-2025'
         shell: bash
         run: |
           mkdir -p release-assets/Textus
           cp src-tauri/target/release/textus.exe release-assets/Textus/
-          7z a "release-assets/Textus_${RELEASE_TAG#v}_x64_portable.zip" release-assets/Textus
+          zip="Textus_${RELEASE_TAG#v}_x64_portable.zip"
+          (cd release-assets && 7z a "$zip" Textus)
+          if ! 7z l -ba "release-assets/$zip" | grep -Eq 'Textus[\\/]textus\.exe'; then
+            echo "the portable zip must hold Textus/textus.exe at its root" >&2
+            exit 1
+          fi
           rm -rf release-assets/Textus
 
       - name: Stage bundle outputs
