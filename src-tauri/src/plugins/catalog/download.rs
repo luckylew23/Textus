@@ -30,7 +30,7 @@ pub(super) fn client_with(redirects: reqwest::redirect::Policy) -> Result<reqwes
     use std::time::Duration;
     // Connecting gives up soon, so an unreachable counting endpoint falls
     // back quickly.
-    crate::net::public_client(Duration::from_secs(10), Duration::from_secs(120))?
+    crate::net::internet_client(Duration::from_secs(10), Duration::from_secs(120))?
         .user_agent(crate::app_identity::APP_NAME)
         .redirect(redirects)
         .build()

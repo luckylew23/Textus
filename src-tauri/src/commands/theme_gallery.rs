@@ -239,7 +239,7 @@ async fn fetch_with(
     limit: usize,
     redirects: reqwest::redirect::Policy,
 ) -> Result<Vec<u8>, String> {
-    let client = crate::net::public_client(CONNECT_TIMEOUT, REQUEST_TIMEOUT)?
+    let client = crate::net::internet_client(CONNECT_TIMEOUT, REQUEST_TIMEOUT)?
         .redirect(redirects)
         .build()
         .map_err(|e| e.to_string())?;

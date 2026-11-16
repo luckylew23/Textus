@@ -276,7 +276,7 @@ impl Service {
 /// set, like the AI providers' requests - the services are on the public
 /// internet, so no address checks are needed.
 pub(super) fn http_client() -> Result<reqwest::Client, String> {
-    crate::net::public_client(CONNECT_TIMEOUT, TOTAL_TIMEOUT)?
+    crate::net::internet_client(CONNECT_TIMEOUT, TOTAL_TIMEOUT)?
         .build()
         .map_err(|e| e.to_string())
 }
