@@ -206,7 +206,9 @@ still fork-only after this rebase:
   onto upstream's `main` when syncing; contributions to upstream go
   from a clean `fix/*` branch derived from upstream's `main` (see
   `fix/intranet-proxy`), which carries no version bump and no
-  fork-only files.
+  fork-only files. One branch per contribution, deleted after the PR
+  merges; a fork commit whose change has landed upstream is then
+  skipped automatically at the next rebase (it rebases to empty).
 - **Tag** `v1.4.1-rc.3` points at `6ce7e11a` (it was force-moved there so
   the tag carries release-fork.yml; re-pointing a tag like this is normal
   here - no published release depends on the old commit).
