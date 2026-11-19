@@ -126,9 +126,9 @@ section when syncing from upstream:
   sets none of the APPLE secrets and tauri build ships unsigned DMGs
   (Gatekeeper: right-click - Open on first launch).
 - **Platforms**: only macOS Apple-silicon DMG and Windows x64 (NSIS +
-  portable zip). The windows job adds a portable zip
-  (`Textus_<version>_x64_portable.zip`, built with 7z so `Textus/` is
-  the zip's root folder).
+  portable zip). The windows job adds a portable zip built with
+  `TEXTUS_DISTRIBUTION=portable` (`Textus/` plus `TextusData/` at the
+  zip's root).
 - **Upstream's release.yml is disabled on this fork** (Actions settings)
   and carries no fork edits - re-enable it and delete release-fork.yml
   when returning to the upstream flow. Only this AGENTS.md section and
@@ -158,35 +158,31 @@ above). Local checkout: `~/Work/Textus`.
 
 ### What the fork adds so far
 
-State after the 2026-11-19 rebase onto upstream `1.4.3-rc.4`
-(`e16f3c87`): upstream had by then shipped the proxy credentials and the
-direct-loopback behaviour itself (its 1.4.1 notes, in its own better
-forms - `%`-escaped userinfo, `aicompat::http::proxy_for` shared with
-net.rs), so those two fork commits were dropped as obsolete; the rest
-was cherry-picked on top (rebased hashes below).
+State after the 2026-11-19 rebase onto upstream `1.4.6-rc.1`
+(`1333fb54`). Upstream had by then shipped, in its own better forms, the
+proxy credentials and direct loopback (1.4.1) and the whole
+system-proxy-following route design (`aicompat::http::Route`,
+hyper-util's matcher, `proxy_url()` resolving the system's proxy -
+1.4.5), so the fork's versions of those were dropped again. What is
+still fork-only after this rebase:
 
-- **Fork release pipeline** (`7a150f7a`): `release-fork.yml`, see
-  Fork releases above. Upstream's `release.yml` is reverted to its
-  original content and disabled on the fork.
-- **Intranet network access** (2026-11-16): the app's requests reach the
-  internet from an intranet where only a proxy can (catalog, plugin and
-  theme downloads, web search, updates), like other apps on the computer:
-  - `reqwest` gains the `socks` and `system-proxy` features (Cargo.toml).
-    Without `socks` a SOCKS5 setting was accepted but every request failed
-    before it left the computer.
-  - Selecting SOCKS5 now builds a `socks5h://` proxy URL, so names are
-    looked up at the proxy; this computer's DNS cannot resolve them.
-  - With no proxy set in Textus's settings, `net::internet_client` follows
-    the system's (or the environment's) proxy, while `net::public_client`
-    stays direct - it also serves this computer's own servers (PicGo, an
-    MCP server on a port here), which a proxy must not carry.
-  - A `proxyUsername`/`proxyPassword` change re-applies the proxy
-    (`proxy_keys_changed`); before, only type/host/port did, so credentials
-    typed after the address never reached requests (the 407 case again).
-  - A proxy setting that can't be read is logged, not silently dropped.
-  - `reqwest13` is a direct, unused dependency purely for feature
-    unification: tauri-plugin-updater's own reqwest 0.13 client needs
-    `socks` for a SOCKS5 proxy during update checks and installs.
+- **Fork release pipeline** (`9f660531`): `release-fork.yml`, see
+  Fork releases above. Upstream's `release.yml` is untouched and
+  disabled on the fork.
+- **SOCKS5 really connects** (`a89bb87b`): reqwest gains the `socks`
+  feature (upstream's reqwest has neither `socks` nor `system-proxy`;
+  it reads the system proxy itself through hyper-util). Without `socks`
+  a SOCKS5 setting was accepted but every request failed before it left
+  the computer. Selecting SOCKS5 builds a `socks5h://` proxy URL, so
+  names are looked up at the proxy, which this computer's own DNS
+  cannot do. A regression test talks to a local SOCKS server and checks
+  the greeting. `reqwest13` is a direct, unused dependency purely for
+  feature unification: tauri-plugin-updater's own reqwest 0.13 client
+  needs `socks` for a SOCKS5 proxy during update checks and installs.
+- **The portable zip builds like upstream's** (`50db9ceb`): a second
+  Windows build with `TEXTUS_DISTRIBUTION=portable` (`TextusData`
+  beside the exe), staged for the publish job - the earlier 7z path
+  packaging buried the app two folders down.
 
 ### On GitHub (state as of 2026-11-13)
 
