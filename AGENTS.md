@@ -167,10 +167,10 @@ hyper-util's matcher, `proxy_url()` resolving the system's proxy -
 1.4.5), so the fork's versions of those were dropped again. What is
 still fork-only after this rebase:
 
-- **Fork release pipeline** (`9f660531`): `release-fork.yml`, see
+- **Fork release pipeline** (`49f80fd9`): `release-fork.yml`, see
   Fork releases above. Upstream's `release.yml` is untouched and
   disabled on the fork.
-- **SOCKS5 really connects** (`a89bb87b`): reqwest gains the `socks`
+- **SOCKS5 really connects** (`6df7d571`): reqwest gains the `socks`
   feature (upstream's reqwest has neither `socks` nor `system-proxy`;
   it reads the system proxy itself through hyper-util). Without `socks`
   a SOCKS5 setting was accepted but every request failed before it left
@@ -180,7 +180,7 @@ still fork-only after this rebase:
   the greeting. `reqwest13` is a direct, unused dependency purely for
   feature unification: tauri-plugin-updater's own reqwest 0.13 client
   needs `socks` for a SOCKS5 proxy during update checks and installs.
-- **The portable zip builds like upstream's** (`50db9ceb`): a second
+- **The portable zip builds like upstream's** (`80b40997`): a second
   Windows build with `TEXTUS_DISTRIBUTION=portable` (`TextusData`
   beside the exe), staged for the publish job - the earlier 7z path
   packaging buried the app two folders down.
