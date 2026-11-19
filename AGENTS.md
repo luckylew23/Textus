@@ -183,6 +183,18 @@ still fork-only after this rebase:
   Windows build with `TEXTUS_DISTRIBUTION=portable` (`TextusData`
   beside the exe), staged for the publish job - the earlier 7z path
   packaging buried the app two folders down.
+- **Windows "follow the system" reads ProxyServer ourselves**
+  (2026-11-19, rc.3): hyper-util's registry reader hands the raw
+  `ProxyServer` value to a URI parser, which drops the per-protocol
+  form (`http=...;https=...`) - requests then went direct and failed
+  with a name error on an intranet, while the browser read the same
+  setting and worked. aicompat now reads the registry first
+  (`windows-registry`, already in the tree) and normalizes both shapes
+  (`parse_windows_proxy_server`, tested everywhere; the registry read
+  is `#[cfg(windows)]`, so it only type-checks on a Windows build -
+  there is no windows target std installed on this machine, rustup
+  cannot download it). A catalog failure also reports the proxy in
+  effect (`aicompat::http::proxy_display`, credentials masked).
 
 ### On GitHub (state as of 2026-11-13)
 
