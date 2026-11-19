@@ -245,6 +245,92 @@ pub(crate) async fn read_sse(
 mod tests {
     use super::*;
 
+<<<<<<< HEAD
+=======
+    #[test]
+    fn the_system_proxy_is_read_with_its_credentials() {
+        // The environment is read first, as the system's settings are.
+        std::env::set_var("HTTPS_PROXY", "http://ann:pw@proxy.example:3128");
+        let found = system_proxy_now();
+        std::env::remove_var("HTTPS_PROXY");
+        assert_eq!(found.as_deref(), Some("http://ann:pw@proxy.example:3128/"));
+    }
+
+    #[test]
+    fn a_windows_proxy_server_value_is_normalized() {
+        // The two shapes the IE settings carry, and the traps: the
+        // per-protocol form (https wins, then http), a value without a
+        // port, and one with a scheme already.
+        assert_eq!(
+            parse_windows_proxy_server("192.168.10.5:8080").as_deref(),
+            Some("http://192.168.10.5:8080")
+        );
+        assert_eq!(
+            parse_windows_proxy_server("proxy.company.com:8080").as_deref(),
+            Some("http://proxy.company.com:8080")
+        );
+        assert_eq!(
+            parse_windows_proxy_server("http=10.0.0.2:81;https=10.0.0.2:444").as_deref(),
+            Some("http://10.0.0.2:444")
+        );
+        assert_eq!(
+            parse_windows_proxy_server("https=10.0.0.2:444;http=10.0.0.2:81").as_deref(),
+            Some("http://10.0.0.2:444")
+        );
+        assert_eq!(
+            parse_windows_proxy_server("socks=127.0.0.1:1080").as_deref(),
+            Some("socks5h://127.0.0.1:1080")
+        );
+        assert_eq!(
+            parse_windows_proxy_server("http://p.example:3128").as_deref(),
+            Some("http://p.example:3128")
+        );
+        assert_eq!(parse_windows_proxy_server(""), None);
+        assert_eq!(parse_windows_proxy_server("  "), None);
+    }
+
+    #[test]
+    fn a_winhttp_proxy_answer_is_parsed() {
+        // PAC results come as "PROXY ..." lists ending in DIRECT, or a
+        // SOCKS entry; per-protocol and bare values delegate to the
+        // ProxyServer parsing.
+        assert_eq!(
+            parse_winhttp_proxy("PROXY 192.168.1.1:8080").as_deref(),
+            Some("http://192.168.1.1:8080")
+        );
+        assert_eq!(
+            parse_winhttp_proxy("PROXY p1.example:80, PROXY p2.example:80; DIRECT").as_deref(),
+            Some("http://p1.example:80")
+        );
+        assert_eq!(
+            parse_winhttp_proxy("SOCKS 127.0.0.1:1080").as_deref(),
+            Some("socks5h://127.0.0.1:1080")
+        );
+        assert_eq!(
+            parse_winhttp_proxy("http=10.0.0.2:81;https=10.0.0.2:444").as_deref(),
+            Some("http://10.0.0.2:444")
+        );
+        assert_eq!(
+            parse_winhttp_proxy("10.0.0.2:8080").as_deref(),
+            Some("http://10.0.0.2:8080")
+        );
+        assert_eq!(parse_winhttp_proxy("DIRECT"), None);
+        assert_eq!(parse_winhttp_proxy("direct"), None);
+        assert_eq!(parse_winhttp_proxy(""), None);
+    }
+
+    #[test]
+    fn the_proxy_message_masks_its_credentials() {
+        set_route(Route::Via("http://ann:pw@proxy.example:3128".into())).unwrap();
+        let shown = proxy_display();
+        set_route(Route::Direct).unwrap();
+        assert!(
+            shown.contains("manual: http://***:***@proxy.example:3128/"),
+            "{shown}"
+        );
+    }
+
+>>>>>>> 8a90e222 (Follow a PAC script and accept a pasted proxy URL)
     fn collect(buffer: &mut SseLineBuffer, chunk: &[u8]) -> Vec<String> {
         let mut out = Vec::new();
         buffer.push(chunk, |data| out.push(data.to_string()));
