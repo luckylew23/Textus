@@ -110,7 +110,7 @@ This fork releases from `.github/workflows/release-fork.yml`, modeled on
 the Tydora fork's pipeline: pushing a `v*.*.*` tag builds and publishes
 directly, or
 `gh workflow run -R luckylew23/Textus release-fork.yml
--f tag=<tag> --ref proxy-authentication`. One build job per platform
+-f tag=<tag> --ref fork`. One build job per platform
 feeds one publish job, so no two builds race for the release. What the
 first fork release (v1.4.1-rc.3, 2026-11-13) established; drop this
 section when syncing from upstream:
@@ -141,7 +141,7 @@ section when syncing from upstream:
     points at `git@github.com:...` (SSH, port 22 works here) and pushes
     workflow commits fine.
 - **A workflow_dispatch needs the workflow on the default branch**;
-  release-fork.yml is only on `proxy-authentication`. Releasing from the
+  release-fork.yml is only on `fork`. Releasing from the
   branch therefore means: move the tag onto a commit that carries
   release-fork.yml and push it (`git tag -f v... <commit> && git push -f
 origin v...`) - the tag push event runs the workflow from the commit
@@ -153,7 +153,7 @@ origin v...`) - the tag push event runs the workflow from the commit
 ## Fork work log (luckylew23/Textus, 2026-11-13)
 
 State and lessons from the first fork work session, so a later agent can
-continue without rediscovering them. Branch `proxy-authentication` (HEAD
+continue without rediscovering them. Branch `fork` (HEAD
 `58fc240d`); first fork release `v1.4.1-rc.3` published (see Fork releases
 above). Local checkout: `~/Work/Textus`.
 
@@ -202,7 +202,7 @@ still fork-only after this rebase:
 - **Fork**: `luckylew23/Textus` (parent/upstream:
   `CatVinci-Studio/Textus`). Working model, since 2026-11-19: fork
   `main` mirrors upstream only (fast-forward on every sync, never
-  conflicts); all fork work lives on `proxy-authentication`, rebased
+  conflicts); all fork work lives on `fork`, rebased
   onto upstream's `main` when syncing; contributions to upstream go
   from a clean `fix/*` branch derived from upstream's `main` (see
   `fix/intranet-proxy`), which carries no version bump and no
