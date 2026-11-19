@@ -159,20 +159,14 @@ above). Local checkout: `~/Work/Textus`.
 
 ### What the fork adds so far
 
-- **Proxy credentials** (`9168fe5b`): the proxy setting takes a username
-  and password (Basic auth; the backend encodes them into the proxy URL's
-  userinfo, which reqwest turns into `Proxy-Authorization`). They are
-  DEVICE_SETTINGS and never exported. Fixes 407 "Proxy Authorization
-  Required" from proxies that accept Basic.
-- **Local model APIs always connect directly** (`8968061b`): with no
-  proxy configured, provider clients are built with `.no_proxy()` (a
-  terminal's HTTPS_PROXY can no longer hijack a model on this computer),
-  and the loopback exemption covers the whole family
-  (`aicompat::http::LOOPBACK_NO_PROXY` = `localhost,127.0.0.0/8,::1`,
-  shared with `net.rs`). Ported from the Tydora project's plus.7 fix;
-  the full write-up lives at
-  `~/Work/Tydora/docs/ai-local-api-proxy-issue.md`.
-- **Fork release pipeline** (`6ce7e11a`): `release-fork.yml`, see
+State after the 2026-11-19 rebase onto upstream `1.4.3-rc.4`
+(`e16f3c87`): upstream had by then shipped the proxy credentials and the
+direct-loopback behaviour itself (its 1.4.1 notes, in its own better
+forms - `%`-escaped userinfo, `aicompat::http::proxy_for` shared with
+net.rs), so those two fork commits were dropped as obsolete; the rest
+was cherry-picked on top (rebased hashes below).
+
+- **Fork release pipeline** (`7a150f7a`): `release-fork.yml`, see
   Fork releases above. Upstream's `release.yml` is reverted to its
   original content and disabled on the fork.
 - **Intranet network access** (2026-11-16): the app's requests reach the
