@@ -158,8 +158,8 @@ above). Local checkout: `~/Work/Textus`.
 
 ### What the fork adds so far
 
-State after the 2026-11-19 rebase onto upstream `1.4.6-rc.1`
-(`1333fb54`). Upstream had by then shipped, in its own better forms, the
+State after the 2026-11-19 rebase onto upstream `main`
+(`51f4e3b9`, one CI commit past `1.4.6-rc.1`). Upstream had by then shipped, in its own better forms, the
 proxy credentials and direct loopback (1.4.1) and the whole
 system-proxy-following route design (`aicompat::http::Route`,
 hyper-util's matcher, `proxy_url()` resolving the system's proxy -
