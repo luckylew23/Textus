@@ -199,8 +199,11 @@ still fork-only after this rebase:
 ### On GitHub (state as of 2026-11-13)
 
 - **Fork**: `luckylew23/Textus` (parent/upstream:
-  `CatVinci-Studio/Textus`). `main` still mirrors upstream untouched; all
-  fork work lives on `proxy-authentication` (HEAD `58fc240d`).
+  `CatVinci-Studio/Textus`). Since 2026-11-19, `main` carries the fork
+  work too (it was fast-forwarded to `proxy-authentication` when the
+  released proxy fixes landed); syncing upstream now means rebasing
+  `proxy-authentication` onto upstream's `main` again and then moving
+  this fork's `main` the same way.
 - **Tag** `v1.4.1-rc.3` points at `6ce7e11a` (it was force-moved there so
   the tag carries release-fork.yml; re-pointing a tag like this is normal
   here - no published release depends on the old commit).
