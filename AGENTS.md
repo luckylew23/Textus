@@ -159,43 +159,21 @@ above). Local checkout: `~/Work/Textus`.
 
 ### What the fork adds so far
 
-State after the 2026-11-19 rebase onto upstream `main`
-(`51f4e3b9`, one CI commit past `1.4.6-rc.1`). Upstream had by then shipped, in its own better forms, the
-proxy credentials and direct loopback (1.4.1) and the whole
-system-proxy-following route design (`aicompat::http::Route`,
-hyper-util's matcher, `proxy_url()` resolving the system's proxy -
-1.4.5), so the fork's versions of those were dropped again. What is
-still fork-only after this rebase:
+State after the 2026-11-24 rebase onto upstream `main`
+(`d139d11d`, 1.4.7-rc.3). Upstream absorbed, in its own forms, every
+fork proxy change: the whole system-proxy-following route design
+(#738 `system_proxy.rs` - PAC/WPAD via WinHTTP, registry per-protocol
+parsing, pasted URLs, SOCKS5) and trusting the computer's certificates
+(#741 `aicompat::trust.rs`) - the fork's proxy dependency edits were
+dropped again. What is still fork-only after this rebase:
 
 - **Fork release pipeline** (`49f80fd9`): `release-fork.yml`, see
   Fork releases above. Upstream's `release.yml` is untouched and
   disabled on the fork.
-- **SOCKS5 really connects** (`6df7d571`): reqwest gains the `socks`
-  feature (upstream's reqwest has neither `socks` nor `system-proxy`;
-  it reads the system proxy itself through hyper-util). Without `socks`
-  a SOCKS5 setting was accepted but every request failed before it left
-  the computer. Selecting SOCKS5 builds a `socks5h://` proxy URL, so
-  names are looked up at the proxy, which this computer's own DNS
-  cannot do. A regression test talks to a local SOCKS server and checks
-  the greeting. `reqwest13` is a direct, unused dependency purely for
-  feature unification: tauri-plugin-updater's own reqwest 0.13 client
-  needs `socks` for a SOCKS5 proxy during update checks and installs.
 - **The portable zip builds like upstream's** (`80b40997`): a second
   Windows build with `TEXTUS_DISTRIBUTION=portable` (`TextusData`
   beside the exe), staged for the publish job - the earlier 7z path
   packaging buried the app two folders down.
-- **Windows "follow the system" reads ProxyServer ourselves**
-  (2026-11-19, rc.3): hyper-util's registry reader hands the raw
-  `ProxyServer` value to a URI parser, which drops the per-protocol
-  form (`http=...;https=...`) - requests then went direct and failed
-  with a name error on an intranet, while the browser read the same
-  setting and worked. aicompat now reads the registry first
-  (`windows-registry`, already in the tree) and normalizes both shapes
-  (`parse_windows_proxy_server`, tested everywhere; the registry read
-  is `#[cfg(windows)]`, so it only type-checks on a Windows build -
-  there is no windows target std installed on this machine, rustup
-  cannot download it). A catalog failure also reports the proxy in
-  effect (`aicompat::http::proxy_display`, credentials masked).
 - **Mermaid diagrams draw when a document opens, and wide ones fit**
   (2026-11-24): two editor bugs behind "cannot render mermaid erDiagram,
   11.17.2" - which was never a mermaid bug (11.17.2 and 12.3.0 render ER
@@ -215,8 +193,9 @@ still fork-only after this rebase:
   `fix/diagram-first-block`, rebased onto upstream `main` `d139d11d`
   (1.4.7-rc.3) as commit `e5854e3e` and pushed; upstream pull request
   [#801](https://github.com/CatVinci-Studio/Textus/pull/801) open
-  (2026-11-24). On `fork` as `f8f2a50d`, released in fork
-  `v1.4.6-rc.5` (six assets, prerelease, release body set). Full
+  (2026-11-24). On `fork` as commit `61d68acb`, released in fork
+  `v1.4.7-rc.4` (2026-11-24, six assets, prerelease, release body set;
+  based on upstream 1.4.7-rc.3). Full
   `npm run check` green and playground-verified before/after on the
   1.4.7 base. Upstream already shipped diagram parse-error notes (#775,
   1.4.7 `diagramErrorWidget`), so the silent-failure gap found during
