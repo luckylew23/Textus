@@ -212,15 +212,15 @@ still fork-only after this rebase:
   65% min-width hold meant for strips; `keepReadable` now holds only
   gantt/timeline sources (their SVG carries no class to tell them by),
   everything else fits the column. Lives on
-  `fix/diagram-first-block` (from upstream `main` `8b911c18`, commit
-  `44df7d90`) for the upstream PR, cherry-picked onto `fork`
-  (`f8f2a50d`) for the next fork release; neither pushed at the time of
-  writing. Tests: `src/editor/mermaid-blocks.test.ts` (new) and
-  `reveal-state.test.ts` additions; `npm run check:quick` green and
-  playground-verified on both bases. Release note:
-  `docs/releases/next/diagram-first-block-and-fit.md`. Still open: a
-  diagram that fails to parse shows no error anywhere
-  (`mermaid-plugin.ts` catch).
+  `fix/diagram-first-block`, rebased onto upstream `main` `d139d11d`
+  (1.4.7-rc.3) as commit `e5854e3e` and pushed; upstream pull request
+  [#801](https://github.com/CatVinci-Studio/Textus/pull/801) open
+  (2026-11-24). On `fork` as `f8f2a50d`, released in fork
+  `v1.4.6-rc.5` (six assets, prerelease, release body set). Full
+  `npm run check` green and playground-verified before/after on the
+  1.4.7 base. Upstream already shipped diagram parse-error notes (#775,
+  1.4.7 `diagramErrorWidget`), so the silent-failure gap found during
+  diagnosis is closed there.
 
 ### On GitHub (state as of 2026-11-13)
 
