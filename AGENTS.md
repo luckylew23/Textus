@@ -195,6 +195,31 @@ still fork-only after this rebase:
   there is no windows target std installed on this machine, rustup
   cannot download it). A catalog failure also reports the proxy in
   effect (`aicompat::http::proxy_display`, credentials masked).
+- **Mermaid diagrams draw when a document opens, and wide ones fit**
+  (2026-11-24): two editor bugs behind "cannot render mermaid erDiagram,
+  11.17.2" - which was never a mermaid bug (11.17.2 and 12.3.0 render ER
+  identically; upgrading would not have helped). One: a document whose
+  first block is a mermaid diagram showed source, no drawing, because the
+  opening caret sits in that block and reveal treated it as being edited;
+  a drawing now remembers the selection it was drawn for
+  (`reveal-state.ts` `drawnAt`), a just-opened document draws for "no
+  one" (`pointer-hold.ts` exports `NOWHERE`), and clicking a drawing
+  reveals its source through a `"reveal"` transaction meta
+  (`mermaidKey`, moved to `mermaid-blocks.ts`). The math/html/embeds
+  reveal plugins share the opening behavior; only mermaid was changed.
+  Two: 显示不全 - wide ER diagrams were cut at the column edge by the
+  65% min-width hold meant for strips; `keepReadable` now holds only
+  gantt/timeline sources (their SVG carries no class to tell them by),
+  everything else fits the column. Lives on
+  `fix/diagram-first-block` (from upstream `main` `8b911c18`, commit
+  `44df7d90`) for the upstream PR, cherry-picked onto `fork`
+  (`f8f2a50d`) for the next fork release; neither pushed at the time of
+  writing. Tests: `src/editor/mermaid-blocks.test.ts` (new) and
+  `reveal-state.test.ts` additions; `npm run check:quick` green and
+  playground-verified on both bases. Release note:
+  `docs/releases/next/diagram-first-block-and-fit.md`. Still open: a
+  diagram that fails to parse shows no error anywhere
+  (`mermaid-plugin.ts` catch).
 
 ### On GitHub (state as of 2026-11-13)
 
