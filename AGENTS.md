@@ -207,6 +207,24 @@ dropped again. What is still fork-only after this rebase:
   1.4.7 base. Upstream already shipped diagram parse-error notes (#775,
   1.4.7 `diagramErrorWidget`), so the silent-failure gap found during
   diagnosis is closed there.
+- **Remote pictures load with an empty referrer** (2026-11-25): the
+  "many documents' pictures don't show" report was hotlink protection,
+  not the network - the webview sent its own origin
+  (`tauri://localhost` / `http://tauri.localhost`) as `Referer` and
+  hosts that check it (several Chinese image CDNs, hdslb.com tested)
+  answered 403 to an unknown origin, while browsers (no referrer) and
+  Obsidian loaded the same picture. `showDocImage`
+  (`src/editor/images/image-plugin.ts`) now sets
+  `img.referrerPolicy = "no-referrer"` for every path it draws
+  (image nodes, Obsidian embeds, linked-image badges, raw `<img>`, AI
+  pending pictures), and an already-failed raw `<img>` drops its
+  `src` before reloading so the policy applies. New test
+  `src/editor/images/show-doc-image.test.ts`; full `npm run check`
+  green. Upstream branch `fix/image-hotlink-upstream` (on 1.4.8-rc.2)
+  as commit `c74fcf8c`, pull request
+  [#816](https://github.com/CatVinci-Studio/Textus/pull/816) open
+  (2026-11-25); on `fork` as commit `d6eac93d`, released in fork
+  `v1.4.7-rc.8` (2026-11-25, portable zip only per the rc convention).
 
 ### On GitHub (state as of 2026-11-13)
 
