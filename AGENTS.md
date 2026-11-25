@@ -174,6 +174,13 @@ dropped again. What is still fork-only after this rebase:
   Windows build with `TEXTUS_DISTRIBUTION=portable` (`TextusData`
   beside the exe), staged for the publish job - the earlier 7z path
   packaging buried the app two folders down.
+- **Plugin responses may be as large as a synced file** (2026-11-25):
+  `plugins/http.rs` stopped a plugin's response at 32 MiB, so the
+  cloud-sync plugin could not download a 33 MiB PDF from a GitHub
+  repository at all (GitHub armours a blob as 44 MiB of base64 first) and
+  reported it as a network failure. The ceiling is now the plugin's own
+  file limit, 128 MiB, and "The response is too big." becomes the sync's
+  `tooLarge` instead of `networkError`.
 - **Mermaid diagrams draw when a document opens, and wide ones fit**
   (2026-11-24): two editor bugs behind "cannot render mermaid erDiagram,
   11.17.2" - which was never a mermaid bug (11.17.2 and 12.3.0 render ER

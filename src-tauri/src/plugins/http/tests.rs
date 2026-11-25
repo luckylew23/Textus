@@ -85,3 +85,37 @@ async fn a_second_request_under_the_same_id_leaves_the_first_running() {
     let (a, b) = tokio::join!(first, second);
     assert_eq!((a, b), (Ok(1), Ok(2)));
 }
+
+/// A server answering every request with `size` bytes of one letter.
+async fn file(size: usize) -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/", listener.local_addr().unwrap());
+    tokio::spawn(async move {
+        let body = vec![b'x'; size];
+        let head = format!("HTTP/1.1 200 OK\r\ncontent-length: {size}\r\n\r\n");
+        while let Ok((mut socket, _)) = listener.accept().await {
+            let (head, body) = (head.clone(), body.clone());
+            tokio::spawn(async move {
+                let mut buf = vec![0; 4096];
+                let _ = socket.read(&mut buf).await;
+                let _ = socket.write_all(head.as_bytes()).await;
+                let _ = socket.write_all(&body).await;
+            });
+        }
+    });
+    url
+}
+
+/// A sync downloads the files of the repository it mirrors, and a folder of
+/// notes holds a PDF of 33 MiB; a response limit of 32 MiB refused it, and the
+/// plugin could only say "check your network", which is not what happened.
+#[tokio::test]
+async fn a_downloaded_file_of_thirty_three_megabytes_reaches_the_plugin() {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let size = 33 * 1024 * 1024;
+    let url = file(size).await;
+    let granted = vec!["network:*".to_string()];
+    let answer = send("test.file", &granted, get(&url, None)).await.unwrap();
+    assert_eq!(answer.status, 200);
+    assert_eq!(STANDARD.decode(&answer.body).unwrap().len(), size);
+}

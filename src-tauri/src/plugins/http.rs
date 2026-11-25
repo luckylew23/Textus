@@ -12,8 +12,11 @@ use std::sync::{LazyLock, Mutex, MutexGuard};
 use std::time::Duration;
 use tokio::sync::oneshot;
 
-/// The most a response may be.
-const MAX_HTTP_BYTES: usize = 32 * 1024 * 1024;
+/// The most a response may be. A sync carries files of up to 128 MiB (the
+/// cloud-sync plugin's own limit), and a file arrives base64 in a JSON body:
+/// a 33 MiB PDF is 33 MiB raw, but 44 MiB when GitHub armour-plates it, so
+/// 32 MiB was too small for the file a user actually had.
+const MAX_HTTP_BYTES: usize = 128 * 1024 * 1024;
 
 #[derive(Deserialize)]
 #[cfg_attr(test, derive(specta::Type))]
